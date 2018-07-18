@@ -3,4 +3,5 @@ Rails.application.routes.draw do
   resources :resources, only: [:show, :create, :update, :destroy]
 
  get 'lesson/:slug/resources', to: 'resources#index', as: 'lesson_resources'
+ delete 'lesson/:slug/resources/:id', to: 'resources#destroy'
 end
