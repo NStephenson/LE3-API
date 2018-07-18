@@ -11,7 +11,7 @@ class ResourcesController < ApplicationController
 
   def create
     resource = Resource.find_by(link: params[:resource][:link])
-    lesson = Lesson.find_or_create_by(name: params[:lesson][:name])
+    lesson = Lesson.find_or_create_by(name: params[:lesson][:name].gsub(/[^\w\s]/, ''))
 
     if !resource
       resource = Resource.new(resource_params)
@@ -23,7 +23,7 @@ class ResourcesController < ApplicationController
     if resource.save
       render json: resource
     else
-      render json: resource, status: 422
+      render json: {resource: resource, errors: resource.errors.full_messages}, status: 422
     end
   end
 
@@ -32,9 +32,10 @@ class ResourcesController < ApplicationController
     render json: resource, :include => [:type, :lessons], status: 200
   end
 
-  def edit
+  def update
     resource = Resource.find(params[:id])
     resource.update(resource_params)
+    resource.type = Type.find_or_create_by(name: params[:resource][:type].downcase)
 
     if resource.save
       render json: resource, status: 204
@@ -44,8 +45,17 @@ class ResourcesController < ApplicationController
   end
 
   def destroy
-    Resource.find(params[:id]).destroy
-    render status: 202
+    resource = Resource.find(params[:id])
+    if !params[:slug] || resource.lessons.length == 1
+      Resource.find(params[:id]).destroy
+      render status: 202
+    else 
+      lesson = Lesson.find_by(name: deslug(params[:slug]))
+      lesson.resources.delete(resource)
+      lesson.save
+      render status: 204
+    end
+
   end
 
   private 
